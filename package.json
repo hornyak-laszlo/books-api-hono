@@ -1,0 +1,20 @@
+{
+  "name": "books-api-hono",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "tsc": "tsc",
+    "check": "biome check",
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "hono": "^4.10.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.2.7",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3"
+  }
+}
