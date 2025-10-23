@@ -3,6 +3,7 @@
     "outDir": "dist",
     "strict": true,
     "jsx": "react-jsx",
+    "skipLibCheck": true,
     "jsxImportSource": "hono/jsx"
   }
 }

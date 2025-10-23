@@ -9,12 +9,14 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.18.0",
     "dotenv": "^17.2.3",
     "hono": "^4.10.2"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.7",
     "@types/bun": "latest",
+    "prisma": "^6.18.0",
     "typescript": "^5.9.3"
   }
 }
