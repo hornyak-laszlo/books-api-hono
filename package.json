@@ -3,6 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
+    "api-test": "npx newman run ./Books-API.postman_collection.json -e local_env.json",
     "tsc": "tsc",
     "check": "biome check --write",
     "dev": "bun run --hot src/index.ts",

@@ -39,5 +39,4 @@ INSERT INTO "GenresOnBooks" ("bookId", "genreId") VALUES
   ('clbook001', 'clgenfntsy001'),
   ('clbook002', 'clgenscifi002'),
   ('clbook003', 'clgenmstry003'),
-  ('clbook004', 'clgennonfic004'),
   ('clbook002', 'clgenfntsy001'); -- Book 2 has multiple genres
