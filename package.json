@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "tsc": "tsc",
-    "check": "biome check",
+    "check": "biome check --write",
     "dev": "bun run --hot src/index.ts",
     "start": "bun run src/index.ts"
   },

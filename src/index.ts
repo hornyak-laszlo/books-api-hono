@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import {
   PrismaClientInitializationError,
   PrismaClientKnownRequestError,
@@ -11,6 +12,7 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from 'hono/logger'
 import books from './books/routes'
 import genres from './genres/routes'
+import prisma from './lib/prisma'
 import reviews from './reviews/routes'
 
 const app = new Hono()
@@ -28,6 +30,22 @@ const routes = app
 app.route('/books', books)
 app.route('/reviews', reviews)
 app.route('/genres', genres)
+app.post('/reset-db', async (c) => {
+  // Read the SQL file
+  const sql = readFileSync('seed.sql', 'utf8')
+
+  // Execute the SQL commands using Prisma's raw query method
+  const statements = sql
+    .split(';')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  for (const stmt of statements) {
+    console.log('Running SQL:', stmt)
+    await prisma.$executeRawUnsafe(stmt)
+  }
+  return c.json({ status: 'ok' })
+})
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
