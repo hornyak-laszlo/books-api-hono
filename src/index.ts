@@ -41,7 +41,6 @@ app.post('/reset-db', async (c) => {
     .filter(Boolean)
 
   for (const stmt of statements) {
-    console.log('Running SQL:', stmt)
     await prisma.$executeRawUnsafe(stmt)
   }
   return c.json({ status: 'ok' })
