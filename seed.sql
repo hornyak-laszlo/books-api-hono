@@ -27,10 +27,10 @@ INSERT INTO "Book" ("id", "createdAt", "updatedAt", "title", "isbn", "publishedA
 -- Insert Reviews
 -- =============================================
 INSERT INTO "Review" ("id", "createdAt", "updatedAt", "bookId", "rating", "text") VALUES
-  ('clrev001', NOW(), NOW(), 'clbook001', 5, 'Absolutely loved the world-building and characters.'),
-  ('clrev002', NOW(), NOW(), 'clbook001', 4, 'Great fantasy novel with a few pacing issues.'),
-  ('clrev003', NOW(), NOW(), 'clbook002', 5, 'A stunning sci-fi adventure with deep themes.'),
-  ('clrev004', NOW(), NOW(), 'clbook003', 3, 'Decent mystery, though the ending was predictable.');
+  ('clrev0001', NOW(), NOW(), 'clbook001', 5, 'Absolutely loved the world-building and characters.'),
+  ('clrev0002', NOW(), NOW(), 'clbook001', 4, 'Great fantasy novel with a few pacing issues.'),
+  ('clrev0003', NOW(), NOW(), 'clbook002', 5, 'A stunning sci-fi adventure with deep themes.'),
+  ('clrev0004', NOW(), NOW(), 'clbook003', 3, 'Decent mystery, though the ending was predictable.');
 
 -- =============================================
 -- Link Books to Genres (GenresOnBooks)

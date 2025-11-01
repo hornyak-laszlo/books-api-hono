@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { OpenAPIHono } from '@hono/zod-openapi'
 import {
   PrismaClientInitializationError,
   PrismaClientKnownRequestError,
@@ -6,7 +7,6 @@ import {
   PrismaClientUnknownRequestError,
   PrismaClientValidationError,
 } from '@prisma/client/runtime/library'
-import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 import { logger } from 'hono/logger'
@@ -15,7 +15,7 @@ import genres from './genres/routes'
 import prisma from './lib/prisma'
 import reviews from './reviews/routes'
 
-const app = new Hono()
+const app = new OpenAPIHono()
 
 app.use(logger())
 app.use(
@@ -66,6 +66,33 @@ app.onError((err, c) => {
   console.error('UNKOWN ERROR')
   console.error(err.message)
   return c.text(err.message, 500)
+})
+
+app.doc('/doc', {
+  openapi: '3.0.0',
+  info: {
+    title: 'Books API',
+    version: '1.0.0',
+  },
+})
+
+app.get('/redoc', (c) => {
+  const redocHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>API Docs</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>body { margin: 0; padding: 0; }</style>
+      </head>
+      <body>
+        <redoc spec-url='/doc'></redoc>
+        <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+      </body>
+    </html>
+  `
+  return c.html(redocHtml)
 })
 
 export type AppType = typeof routes

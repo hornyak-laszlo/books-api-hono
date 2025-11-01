@@ -394,9 +394,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{baseURL}}/reviews/clrev001",
+          "raw": "{{baseURL}}/reviews/clrev0001",
           "host": ["{{baseURL}}"],
-          "path": ["reviews", "clrev001"]
+          "path": ["reviews", "clrev0001"]
         }
       },
       "response": []
