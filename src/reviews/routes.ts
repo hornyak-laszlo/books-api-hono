@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 
 import type { ReviewCreateInput } from '../../generated/prisma/models'
-import { ReviewCreateResultSchema } from '../../generated/zod/schemas'
+import { ReviewResultSchema } from '../../generated/zod/schemas'
 import { createReviewSchema } from './dto'
 import { createReview, removeReview } from './repository'
 
@@ -22,7 +22,7 @@ const postRoute = createRoute({
       description: 'Review created',
       content: {
         'application/json': {
-          schema: ReviewCreateResultSchema.omit({ book: true }),
+          schema: ReviewResultSchema.omit({ book: true }),
         },
       },
     },

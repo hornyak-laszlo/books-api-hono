@@ -1,11 +1,16 @@
-import { Hono } from 'hono'
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 import type {
   BookCreateInput,
   BookUpdateInput,
   GenresOnBooksCreateWithoutBookInput,
 } from '../../generated/prisma/models'
-import { createBookDto, updateBookDto } from './dto'
+import {
+  BookResultSchema,
+  GenreResultSchema,
+  GenresOnBooksModelSchema,
+} from '../../generated/zod/schemas'
+import { createBookSchema, updateBookSchema } from './dto'
 import {
   createBook,
   findAllBooks,
@@ -14,13 +19,151 @@ import {
   updateBook,
 } from './repository'
 
-const books = new Hono()
-  .get('/', async (c) => {
+const getListRoute = createRoute({
+  method: 'get',
+  path: '/',
+  responses: {
+    200: {
+      description: 'Books list',
+      content: {
+        'application/json': {
+          schema: z.array(
+            BookResultSchema.omit({
+              price: true,
+              reviews: true,
+              genres: true,
+            }).extend({
+              price: z.string(),
+              genres: z.array(
+                GenresOnBooksModelSchema.omit({
+                  book: true,
+                  genre: true,
+                }).extend({
+                  genre: GenreResultSchema.omit({ books: true }),
+                }),
+              ),
+            }),
+          ),
+        },
+      },
+    },
+  },
+})
+
+const postRoute = createRoute({
+  method: 'post',
+  path: '/',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: createBookSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Book created',
+      content: {
+        'application/json': {
+          schema: BookResultSchema.omit({
+            price: true,
+            genres: true,
+            reviews: true,
+          }).extend({
+            price: z.string(),
+          }),
+        },
+      },
+    },
+  },
+})
+
+const getRoute = createRoute({
+  method: 'get',
+  path: '/:id',
+  request: {
+    params: z.object({
+      id: z.cuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Book details',
+      content: {
+        'application/json': {
+          schema: BookResultSchema.omit({
+            price: true,
+          }).extend({
+            price: z.string(),
+          }),
+        },
+      },
+    },
+  },
+})
+
+const patchRoute = createRoute({
+  method: 'patch',
+  path: '/:id',
+  request: {
+    params: z.object({
+      id: z.cuid(),
+    }),
+    body: {
+      content: {
+        'application/json': {
+          schema: updateBookSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Book updated',
+      content: {
+        'application/json': {
+          schema: BookResultSchema.omit({
+            price: true,
+            genres: true,
+            reviews: true,
+          }).extend({
+            price: z.string(),
+          }),
+        },
+      },
+    },
+  },
+})
+
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/:id',
+  request: {
+    params: z.object({
+      id: z.cuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Book deleted',
+      content: {
+        'application/json': {
+          schema: z.object({}),
+        },
+      },
+    },
+  },
+})
+
+const books = new OpenAPIHono()
+  .openapi(getListRoute, async (c) => {
     const books = await findAllBooks()
     return c.json(books)
   })
 
-  .post('/', createBookDto, async (c) => {
+  .openapi(postRoute, async (c) => {
     const body = c.req.valid('json')
     const data: BookCreateInput = {
       title: body.title,
@@ -45,7 +188,7 @@ const books = new Hono()
     return c.json(book)
   })
 
-  .get('/:id', async (c) => {
+  .openapi(getRoute, async (c) => {
     const id = c.req.param('id')
     const book = await findBookById(id)
     if (!book) {
@@ -56,7 +199,7 @@ const books = new Hono()
     return c.json(book)
   })
 
-  .patch('/:id', updateBookDto, async (c) => {
+  .openapi(patchRoute, async (c) => {
     const id = c.req.param('id')
     const body = c.req.valid('json')
     const book = await findBookById(id)
@@ -73,7 +216,7 @@ const books = new Hono()
     return c.json(updatedBook)
   })
 
-  .delete('/:id', async (c) => {
+  .openapi(deleteRoute, async (c) => {
     const id = c.req.param('id')
     const book = await findBookById(id)
     if (!book) {

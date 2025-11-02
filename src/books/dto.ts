@@ -1,7 +1,6 @@
-import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
+import { z } from '@hono/zod-openapi'
 
-const createBookSchema = z
+export const createBookSchema = z
   .object({
     title: z.string().min(1),
     isbn: z.string().min(1),
@@ -12,12 +11,9 @@ const createBookSchema = z
   })
   .required()
 
-const updateBookSchema = z
+export const updateBookSchema = z
   .object({
     price: z.number().min(0.01),
     inStock: z.boolean(),
   })
   .required()
-
-export const createBookDto = zValidator('json', createBookSchema)
-export const updateBookDto = zValidator('json', updateBookSchema)

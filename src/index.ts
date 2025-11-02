@@ -49,7 +49,16 @@ app.post('/reset-db', async (c) => {
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     console.error('HTTP ERROR')
-    return err.getResponse()
+    return c.json(
+      {
+        success: false,
+        error: {
+          name: 'HttpError',
+          message: err.message,
+        },
+      },
+      err.status,
+    )
   }
 
   if (
@@ -59,13 +68,31 @@ app.onError((err, c) => {
     err instanceof PrismaClientInitializationError ||
     err instanceof PrismaClientRustPanicError
   ) {
-    console.error('PRISMA ERROR', err)
-    return c.text(err.message, 500)
+    console.error('PRISMA ERROR')
+    return c.json(
+      {
+        success: false,
+        error: {
+          name: 'PrismaError',
+          message: err.message,
+        },
+      },
+      500,
+    )
   }
 
   console.error('UNKOWN ERROR')
   console.error(err.message)
-  return c.text(err.message, 500)
+  return c.json(
+    {
+      success: false,
+      error: {
+        name: 'UknownError',
+        message: err.message,
+      },
+    },
+    500,
+  )
 })
 
 app.doc('/doc', {

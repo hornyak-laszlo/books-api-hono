@@ -1,15 +1,76 @@
-import { Hono } from 'hono'
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+
 import type { GenreCreateInput } from '../../generated/prisma/models'
-import { createGenreDto } from './dto'
+import { GenreResultSchema } from '../../generated/zod/schemas'
+import { createGenreSchema } from './dto'
 import { createGenre, findAllGenres, removeGenre } from './repository'
 
-const genres = new Hono()
-  .get('/', async (c) => {
+const getListRoute = createRoute({
+  method: 'get',
+  path: '/',
+  responses: {
+    200: {
+      description: 'Genres list',
+      content: {
+        'application/json': {
+          schema: z.array(GenreResultSchema.omit({ books: true })),
+        },
+      },
+    },
+  },
+})
+
+const postRoute = createRoute({
+  method: 'post',
+  path: '/',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: createGenreSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Genre created',
+      content: {
+        'application/json': {
+          schema: GenreResultSchema.omit({ books: true }),
+        },
+      },
+    },
+  },
+})
+
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/{id}',
+  request: {
+    params: z.object({
+      id: z.cuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Genre deleted',
+      content: {
+        'application/json': {
+          schema: z.object({}),
+        },
+      },
+    },
+  },
+})
+
+const genres = new OpenAPIHono()
+  .openapi(getListRoute, async (c) => {
     const genres = await findAllGenres()
     return c.json(genres)
   })
 
-  .post('/', createGenreDto, async (c) => {
+  .openapi(postRoute, async (c) => {
     const body = c.req.valid('json')
     const data: GenreCreateInput = {
       name: body.name,
@@ -19,7 +80,7 @@ const genres = new Hono()
     return c.json(book)
   })
 
-  .delete('/:id', async (c) => {
+  .openapi(deleteRoute, async (c) => {
     const id = c.req.param('id')
     await removeGenre(id)
     return c.json({})
