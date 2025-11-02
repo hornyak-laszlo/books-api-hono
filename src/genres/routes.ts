@@ -1,9 +1,16 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
+import { HTTPException } from 'hono/http-exception'
 
 import type { GenreCreateInput } from '../../generated/prisma/models'
 import { GenreResultSchema } from '../../generated/zod/schemas'
+import { httpError, serverError, zodError } from '../lib/errorUtils'
 import { createGenreSchema } from './dto'
-import { createGenre, findAllGenres, removeGenre } from './repository'
+import {
+  createGenre,
+  findAllGenres,
+  findGenreById,
+  removeGenre,
+} from './repository'
 
 const getListRoute = createRoute({
   method: 'get',
@@ -17,6 +24,7 @@ const getListRoute = createRoute({
         },
       },
     },
+    500: serverError,
   },
 })
 
@@ -41,6 +49,8 @@ const postRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    500: serverError,
   },
 })
 
@@ -61,6 +71,9 @@ const deleteRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    404: httpError,
+    500: serverError,
   },
 })
 
@@ -82,6 +95,14 @@ const genres = new OpenAPIHono()
 
   .openapi(deleteRoute, async (c) => {
     const id = c.req.param('id')
+    const genre = await findGenreById(id)
+
+    if (!genre) {
+      throw new HTTPException(404, {
+        message: 'Genre not found',
+      })
+    }
+
     await removeGenre(id)
     return c.json({})
   })

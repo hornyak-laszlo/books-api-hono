@@ -10,6 +10,7 @@ import {
   GenreResultSchema,
   GenresOnBooksModelSchema,
 } from '../../generated/zod/schemas'
+import { httpError, serverError, zodError } from '../lib/errorUtils'
 import { createBookSchema, updateBookSchema } from './dto'
 import {
   createBook,
@@ -47,6 +48,7 @@ const getListRoute = createRoute({
         },
       },
     },
+    500: serverError,
   },
 })
 
@@ -77,12 +79,14 @@ const postRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    500: serverError,
   },
 })
 
 const getRoute = createRoute({
   method: 'get',
-  path: '/:id',
+  path: '/{id}',
   request: {
     params: z.object({
       id: z.cuid(),
@@ -101,12 +105,15 @@ const getRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    404: httpError,
+    500: serverError,
   },
 })
 
 const patchRoute = createRoute({
   method: 'patch',
-  path: '/:id',
+  path: '/{id}',
   request: {
     params: z.object({
       id: z.cuid(),
@@ -134,12 +141,15 @@ const patchRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    404: httpError,
+    500: serverError,
   },
 })
 
 const deleteRoute = createRoute({
   method: 'delete',
-  path: '/:id',
+  path: '/{id}',
   request: {
     params: z.object({
       id: z.cuid(),
@@ -154,6 +164,9 @@ const deleteRoute = createRoute({
         },
       },
     },
+    400: zodError,
+    404: httpError,
+    500: serverError,
   },
 })
 

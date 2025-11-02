@@ -10,6 +10,11 @@ export const createReview = async (
   return review
 }
 
+export const findReviewById = async (id: string): Promise<Review | null> => {
+  const review = await prisma.review.findUnique({ where: { id } })
+  return review
+}
+
 export const removeReview = async (id: string): Promise<void> => {
   await prisma.review.delete({ where: { id } })
 }

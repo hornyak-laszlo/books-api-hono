@@ -12,6 +12,13 @@ export const findAllGenres = async (): Promise<Genre[]> => {
   return genres
 }
 
+export const findGenreById = async (id: string): Promise<Genre | null> => {
+  const genre = await prisma.genre.findUnique({
+    where: { id },
+  })
+  return genre
+}
+
 export const removeGenre = async (id: string): Promise<void> => {
   await prisma.genre.delete({ where: { id } })
 }

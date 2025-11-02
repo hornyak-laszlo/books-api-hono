@@ -51,11 +51,8 @@ app.onError((err, c) => {
     console.error('HTTP ERROR')
     return c.json(
       {
-        success: false,
-        error: {
-          name: 'HttpError',
-          message: err.message,
-        },
+        name: 'HttpError',
+        message: err.message,
       },
       err.status,
     )
@@ -71,11 +68,8 @@ app.onError((err, c) => {
     console.error('PRISMA ERROR')
     return c.json(
       {
-        success: false,
-        error: {
-          name: 'PrismaError',
-          message: err.message,
-        },
+        name: 'PrismaError',
+        message: err.message,
       },
       500,
     )
@@ -85,11 +79,8 @@ app.onError((err, c) => {
   console.error(err.message)
   return c.json(
     {
-      success: false,
-      error: {
-        name: 'UknownError',
-        message: err.message,
-      },
+      name: 'UknownError',
+      message: err.message,
     },
     500,
   )
