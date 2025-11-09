@@ -2,9 +2,12 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
 import type { GenreCreateInput } from '../../generated/prisma/models'
-import { GenreResultSchema } from '../../generated/zod/schemas'
 import { httpError, serverError, zodError } from '../lib/errorUtils'
-import { createGenreSchema } from './dto'
+import {
+  createGenreRequestDto,
+  createGenreResponseDto,
+  listGenresResponseDto,
+} from './dto'
 import {
   createGenre,
   findAllGenres,
@@ -20,7 +23,7 @@ const getListRoute = createRoute({
       description: 'Genres list',
       content: {
         'application/json': {
-          schema: z.array(GenreResultSchema.omit({ books: true })),
+          schema: listGenresResponseDto,
         },
       },
     },
@@ -35,7 +38,7 @@ const postRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: createGenreSchema,
+          schema: createGenreRequestDto,
         },
       },
     },
@@ -45,7 +48,7 @@ const postRoute = createRoute({
       description: 'Genre created',
       content: {
         'application/json': {
-          schema: GenreResultSchema.omit({ books: true }),
+          schema: createGenreResponseDto,
         },
       },
     },

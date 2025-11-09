@@ -5,13 +5,15 @@ import type {
   BookUpdateInput,
   GenresOnBooksCreateWithoutBookInput,
 } from '../../generated/prisma/models'
-import {
-  BookResultSchema,
-  GenreResultSchema,
-  GenresOnBooksModelSchema,
-} from '../../generated/zod/schemas'
 import { httpError, serverError, zodError } from '../lib/errorUtils'
-import { createBookSchema, updateBookSchema } from './dto'
+import {
+  createBookReponseDto,
+  createBookRequestDto,
+  getBookResponseDto,
+  listBooksResponseDto,
+  updateBookRequestDto,
+  updateBookResponseDto,
+} from './dto'
 import {
   createBook,
   findAllBooks,
@@ -28,23 +30,7 @@ const getListRoute = createRoute({
       description: 'Books list',
       content: {
         'application/json': {
-          schema: z.array(
-            BookResultSchema.omit({
-              price: true,
-              reviews: true,
-              genres: true,
-            }).extend({
-              price: z.string(),
-              genres: z.array(
-                GenresOnBooksModelSchema.omit({
-                  book: true,
-                  genre: true,
-                }).extend({
-                  genre: GenreResultSchema.omit({ books: true }),
-                }),
-              ),
-            }),
-          ),
+          schema: listBooksResponseDto,
         },
       },
     },
@@ -59,7 +45,7 @@ const postRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: createBookSchema,
+          schema: createBookRequestDto,
         },
       },
     },
@@ -69,13 +55,7 @@ const postRoute = createRoute({
       description: 'Book created',
       content: {
         'application/json': {
-          schema: BookResultSchema.omit({
-            price: true,
-            genres: true,
-            reviews: true,
-          }).extend({
-            price: z.string(),
-          }),
+          schema: createBookReponseDto,
         },
       },
     },
@@ -97,11 +77,7 @@ const getRoute = createRoute({
       description: 'Book details',
       content: {
         'application/json': {
-          schema: BookResultSchema.omit({
-            price: true,
-          }).extend({
-            price: z.string(),
-          }),
+          schema: getBookResponseDto,
         },
       },
     },
@@ -121,7 +97,7 @@ const patchRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: updateBookSchema,
+          schema: updateBookRequestDto,
         },
       },
     },
@@ -131,13 +107,7 @@ const patchRoute = createRoute({
       description: 'Book updated',
       content: {
         'application/json': {
-          schema: BookResultSchema.omit({
-            price: true,
-            genres: true,
-            reviews: true,
-          }).extend({
-            price: z.string(),
-          }),
+          schema: updateBookResponseDto,
         },
       },
     },

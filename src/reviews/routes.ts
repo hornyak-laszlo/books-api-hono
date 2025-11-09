@@ -1,9 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 import type { ReviewCreateInput } from '../../generated/prisma/models'
-import { ReviewResultSchema } from '../../generated/zod/schemas'
 import { httpError, serverError, zodError } from '../lib/errorUtils'
-import { createReviewSchema } from './dto'
+import { createReviewRequestDto, createReviewResponseDto } from './dto'
 import { createReview, findReviewById, removeReview } from './repository'
 
 const postRoute = createRoute({
@@ -13,7 +12,7 @@ const postRoute = createRoute({
     body: {
       content: {
         'application/json': {
-          schema: createReviewSchema,
+          schema: createReviewRequestDto,
         },
       },
     },
@@ -23,7 +22,7 @@ const postRoute = createRoute({
       description: 'Review created',
       content: {
         'application/json': {
-          schema: ReviewResultSchema.omit({ book: true }),
+          schema: createReviewResponseDto,
         },
       },
     },

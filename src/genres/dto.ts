@@ -1,7 +1,25 @@
 import { z } from '@hono/zod-openapi'
 
-export const createGenreSchema = z
+export const createGenreRequestDto = z
   .object({
     name: z.string().min(1),
   })
-  .required()
+  .strict()
+
+export const createGenreResponseDto = z
+  .object({
+    id: z.string(),
+    createdAt: z.date(),
+    name: z.string(),
+  })
+  .strict()
+
+export const listGenresResponseDto = z.array(
+  z
+    .object({
+      id: z.string(),
+      createdAt: z.date(),
+      name: z.string(),
+    })
+    .strict(),
+)
