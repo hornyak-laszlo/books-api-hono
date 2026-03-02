@@ -1,14 +1,14 @@
 import { OpenAPIHono } from '@hono/zod-openapi'
+import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
+import { logger } from 'hono/logger'
 import {
   PrismaClientInitializationError,
   PrismaClientKnownRequestError,
   PrismaClientRustPanicError,
   PrismaClientUnknownRequestError,
   PrismaClientValidationError,
-} from '@prisma/client/runtime/library'
-import { cors } from 'hono/cors'
-import { HTTPException } from 'hono/http-exception'
-import { logger } from 'hono/logger'
+} from '../generated/prisma/internal/prismaNamespace'
 import books from './books/routes'
 import genres from './genres/routes'
 import resetDb from './reset-db/routes'
