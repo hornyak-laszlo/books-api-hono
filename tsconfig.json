@@ -4,7 +4,7 @@
     "moduleResolution": "bundler",
     "target": "ES2023",
     "esModuleInterop": true,
-    "outDir": "dist",
+    "noEmit": true,
     "strict": true,
     "jsx": "react-jsx",
     "skipLibCheck": true,

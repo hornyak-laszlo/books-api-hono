@@ -81,3 +81,11 @@ prisma/
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `PORT` | Server port (default: `3000`) |
+
+## Testing
+
+Added tests based on Postman collection. To run them:
+
+```sh
+bun test --coverage
+```

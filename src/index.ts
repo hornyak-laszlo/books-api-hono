@@ -103,3 +103,5 @@ export const server = Bun.serve({
   port: Number.parseInt(process.env.PORT || '3000', 10),
   fetch: app.fetch,
 })
+
+export default app
