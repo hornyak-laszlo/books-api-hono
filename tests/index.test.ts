@@ -1,6 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
 import app from '../src/index'
+import prisma from '../src/lib/prisma'
+
+app.get('/__test-prisma-error', async () => {
+  await prisma.book.create({
+    data: {
+      title: 'Dup',
+      isbn: 'SAME-ISBN-999',
+      publishedAt: new Date(),
+      price: 1,
+      inStock: true,
+    },
+  })
+  await prisma.book.create({
+    data: {
+      title: 'Dup2',
+      isbn: 'SAME-ISBN-999',
+      publishedAt: new Date(),
+      price: 1,
+      inStock: true,
+    },
+  })
+})
 
 // Seed IDs — match seed.sql exactly
 const BOOK_1 = 'clbook001'
@@ -87,7 +109,7 @@ describe('GET /books/:id', () => {
 })
 
 describe('POST /books', () => {
-  it('creates a book and returns 200 with the new record', async () => {
+  it('creates a book and returns 201 with the new record', async () => {
     const res = await app.request('/books', {
       method: 'POST',
       ...json({
@@ -101,10 +123,25 @@ describe('POST /books', () => {
     })
     const body = await res.json()
 
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(body.title).toBe('Test')
     expect(body.price).toBe('16.99')
     expect(body.createdAt).toBeDefined()
+  })
+
+  it('returns 409 when ISBN already exists', async () => {
+    const res = await app.request('/books', {
+      method: 'POST',
+      ...json({
+        title: 'Duplicate',
+        isbn: '9780000000011',
+        publishedAt: '2025-10-27',
+        price: 16.99,
+        inStock: true,
+        genres: [],
+      }),
+    })
+    expect(res.status).toBe(409)
   })
 
   it('returns 400 when required fields are missing', async () => {
@@ -164,19 +201,18 @@ describe('PATCH /books/:id', () => {
   it('returns 400 when body is missing required fields', async () => {
     const res = await app.request(`/books/${BOOK_1}`, {
       method: 'PATCH',
-      ...json({ price: 9.99 }), // missing inStock
+      ...json({ price: 9.99 }),
     })
     expect(res.status).toBe(400)
   })
 })
 
 describe('DELETE /books/:id', () => {
-  it('deletes a book and returns 200 with empty object', async () => {
+  it('deletes a book and returns 204 with no body', async () => {
     const res = await app.request(`/books/${BOOK_1}`, { method: 'DELETE' })
-    const body = await res.json()
 
-    expect(res.status).toBe(200)
-    expect(body).toEqual({})
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
   })
 
   it('deleted book is no longer retrievable', async () => {
@@ -225,17 +261,46 @@ describe('GET /genres', () => {
   })
 })
 
+describe('GET /genres/:id', () => {
+  it('returns 200 with the requested genre', async () => {
+    const res = await app.request(`/genres/${GENRE_FANTASY}`)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.id).toBe(GENRE_FANTASY)
+    expect(body.name).toBe('Fantasy')
+  })
+
+  it('returns 400 for a non-cuid id', async () => {
+    const res = await app.request('/genres/not-a-cuid')
+    expect(res.status).toBe(400)
+  })
+
+  it('returns 404 for an unknown id', async () => {
+    const res = await app.request('/genres/clunknown0000000000000000')
+    expect(res.status).toBe(404)
+  })
+})
+
 describe('POST /genres', () => {
-  it('creates a genre and returns 200 with the new record', async () => {
+  it('creates a genre and returns 201 with the new record', async () => {
     const res = await app.request('/genres', {
       method: 'POST',
       ...json({ name: 'Test' }),
     })
     const body = await res.json()
 
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(body.name).toBe('Test')
     expect(body.createdAt).toBeDefined()
+  })
+
+  it('returns 409 when name already exists', async () => {
+    const res = await app.request('/genres', {
+      method: 'POST',
+      ...json({ name: 'Fantasy' }),
+    })
+    expect(res.status).toBe(409)
   })
 
   it('returns 400 when name is missing', async () => {
@@ -256,14 +321,13 @@ describe('POST /genres', () => {
 })
 
 describe('DELETE /genres/:id', () => {
-  it('deletes a genre and returns 200 with empty object', async () => {
+  it('deletes a genre and returns 204 with no body', async () => {
     const res = await app.request(`/genres/${GENRE_NONFIC}`, {
       method: 'DELETE',
     })
-    const body = await res.json()
 
-    expect(res.status).toBe(200)
-    expect(body).toEqual({})
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
   })
 
   it('deleted genre is no longer in the list', async () => {
@@ -275,6 +339,13 @@ describe('DELETE /genres/:id', () => {
     expect(
       body.find((g: { id: string }) => g.id === GENRE_NONFIC),
     ).toBeUndefined()
+  })
+
+  it('returns 409 when genre is assigned to books', async () => {
+    const res = await app.request(`/genres/${GENRE_FANTASY}`, {
+      method: 'DELETE',
+    })
+    expect(res.status).toBe(409)
   })
 
   it('returns 400 for a non-cuid id', async () => {
@@ -294,17 +365,54 @@ describe('DELETE /genres/:id', () => {
 // Reviews
 // ---------------------------------------------------------------------------
 
+describe('GET /reviews', () => {
+  it('returns 200 with all seeded reviews as an array', async () => {
+    const res = await app.request('/reviews')
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(Array.isArray(body)).toBe(true)
+    expect(body).toHaveLength(4)
+    expect(body[0].id).toBe(REVIEW_1)
+  })
+
+  it('each review has expected shape', async () => {
+    const res = await app.request('/reviews')
+    const [review] = await res.json()
+
+    expect(review).toMatchObject({
+      id: expect.any(String),
+      bookId: expect.any(String),
+      rating: expect.any(Number),
+      text: expect.any(String),
+      createdAt: expect.any(String),
+    })
+  })
+})
+
 describe('POST /reviews', () => {
-  it('creates a review and returns 200 with the new record', async () => {
+  it('creates a review and returns 201 with the new record', async () => {
     const res = await app.request('/reviews', {
       method: 'POST',
       ...json({ bookId: BOOK_1, rating: 5, text: 'Really good!' }),
     })
     const body = await res.json()
 
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     expect(body.bookId).toBe(BOOK_1)
     expect(body.createdAt).toBeDefined()
+  })
+
+  it('returns 404 when book does not exist', async () => {
+    const res = await app.request('/reviews', {
+      method: 'POST',
+      ...json({
+        bookId: 'clunknown0000000000000000',
+        rating: 5,
+        text: 'Good',
+      }),
+    })
+    expect(res.status).toBe(404)
   })
 
   it('returns 400 when required fields are missing', async () => {
@@ -333,12 +441,11 @@ describe('POST /reviews', () => {
 })
 
 describe('DELETE /reviews/:id', () => {
-  it('deletes a review and returns 200 with empty object', async () => {
+  it('deletes a review and returns 204 with no body', async () => {
     const res = await app.request(`/reviews/${REVIEW_1}`, { method: 'DELETE' })
-    const body = await res.json()
 
-    expect(res.status).toBe(200)
-    expect(body).toEqual({})
+    expect(res.status).toBe(204)
+    expect(await res.text()).toBe('')
   })
 
   it('deleted review no longer appears on the book', async () => {
@@ -388,11 +495,44 @@ describe('Seed data integrity', () => {
   })
 
   it('deleting a book cascades and removes its reviews', async () => {
-    // book 1 has reviews clrev0001 and clrev0002
     await app.request(`/books/${BOOK_1}`, { method: 'DELETE' })
 
-    // Trying to delete review that belonged to deleted book should 404
     const res = await app.request(`/reviews/${REVIEW_1}`, { method: 'DELETE' })
     expect(res.status).toBe(404)
+  })
+})
+
+describe('GET /doc', () => {
+  it('returns the OpenAPI spec as JSON', async () => {
+    const res = await app.request('/doc')
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.openapi).toBe('3.0.0')
+    expect(body.info.title).toBe('Books API')
+    expect(body.info.version).toBe('1.0.0')
+    expect(body.paths).toBeDefined()
+  })
+})
+
+describe('GET /redoc', () => {
+  it('returns the ReDoc HTML page', async () => {
+    const res = await app.request('/redoc')
+    const text = await res.text()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/html')
+    expect(text).toContain('<!DOCTYPE html>')
+    expect(text).toContain('redoc')
+  })
+})
+
+describe('Prisma error handling', () => {
+  it('returns 500 for an unexpected Prisma error', async () => {
+    const res = await app.request('/__test-prisma-error')
+    expect(res.status).toBe(500)
+
+    const body = await res.json()
+    expect(body.name).toBe('PrismaError')
   })
 })

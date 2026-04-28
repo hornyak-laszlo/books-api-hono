@@ -1,14 +1,15 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
-import type {
-  BookCreateInput,
-  BookUpdateInput,
-  GenresOnBooksCreateWithoutBookInput,
-} from '../../generated/prisma/models'
-import { httpError, serverError, zodError } from '../lib/errorUtils'
+import type { BookUpdateInput } from '../../generated/prisma/models'
 import {
-  createBookReponseDto,
+  conflictError,
+  httpError,
+  serverError,
+  zodError,
+} from '../lib/errorUtils'
+import {
   createBookRequestDto,
+  createBookResponseDto,
   getBookResponseDto,
   listBooksResponseDto,
   updateBookRequestDto,
@@ -18,6 +19,7 @@ import {
   createBook,
   findAllBooks,
   findBookById,
+  findBookByIsbn,
   removeBook,
   updateBook,
 } from './repository'
@@ -51,15 +53,16 @@ const postRoute = createRoute({
     },
   },
   responses: {
-    200: {
+    201: {
       description: 'Book created',
       content: {
         'application/json': {
-          schema: createBookReponseDto,
+          schema: createBookResponseDto,
         },
       },
     },
     400: zodError,
+    409: conflictError,
     500: serverError,
   },
 })
@@ -126,13 +129,8 @@ const deleteRoute = createRoute({
     }),
   },
   responses: {
-    200: {
+    204: {
       description: 'Book deleted',
-      content: {
-        'application/json': {
-          schema: z.object({}),
-        },
-      },
     },
     400: zodError,
     404: httpError,
@@ -148,27 +146,22 @@ const books = new OpenAPIHono()
 
   .openapi(postRoute, async (c) => {
     const body = c.req.valid('json')
-    const data: BookCreateInput = {
+    const existingBook = await findBookByIsbn(body.isbn)
+    if (existingBook) {
+      throw new HTTPException(409, {
+        message: 'A book with this ISBN already exists',
+      })
+    }
+    const book = await createBook({
       title: body.title,
       isbn: body.isbn,
       publishedAt: body.publishedAt,
       price: body.price,
       inStock: body.inStock,
-      genres: {
-        create: body.genres.map(
-          (genreId: string): GenresOnBooksCreateWithoutBookInput => ({
-            genre: {
-              connect: {
-                id: genreId,
-              },
-            },
-          }),
-        ),
-      },
-    }
-    const book = await createBook(data)
+      genreIds: body.genres,
+    })
 
-    return c.json(book)
+    return c.json(book, 201)
   })
 
   .openapi(getRoute, async (c) => {
@@ -208,7 +201,7 @@ const books = new OpenAPIHono()
       })
     }
     await removeBook(id)
-    return c.json({})
+    return c.body(null, 204)
   })
 
 export default books

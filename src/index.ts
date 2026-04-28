@@ -60,11 +60,11 @@ app.onError((err, c) => {
     )
   }
 
-  console.error('UNKOWN ERROR')
+  console.error('UNKNOWN ERROR')
   console.error(err.message)
   return c.json(
     {
-      name: 'UknownError',
+      name: 'UnknownError',
       message: err.message,
     },
     500,

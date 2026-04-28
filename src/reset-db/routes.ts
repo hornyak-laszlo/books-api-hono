@@ -22,18 +22,10 @@ const postRoute = createRoute({
 })
 
 const resetDb = new OpenAPIHono().openapi(postRoute, async (c) => {
-  // Read the SQL file
   const sql = readFileSync(new URL('../../seed.sql', import.meta.url), 'utf8')
 
-  // Execute the SQL commands using Prisma's raw query method
-  const statements = sql
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  await prisma.$executeRawUnsafe(sql)
 
-  for (const stmt of statements) {
-    await prisma.$executeRawUnsafe(stmt)
-  }
   return c.json({ status: 'ok' })
 })
 

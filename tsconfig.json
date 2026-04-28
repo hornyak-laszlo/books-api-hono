@@ -8,6 +8,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "skipLibCheck": true,
-    "jsxImportSource": "hono/jsx"
+    "jsxImportSource": "hono/jsx",
+    "types": ["bun"]
   }
 }

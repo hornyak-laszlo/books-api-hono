@@ -14,7 +14,20 @@ export const createReviewResponseDto = z
     createdAt: z.date(),
     updatedAt: z.date(),
     bookId: z.string(),
-    rating: z.number().int(),
+    rating: z.int(),
     text: z.string(),
   })
   .strict()
+
+export const listReviewsResponseDto = z.array(
+  z
+    .object({
+      id: z.string(),
+      createdAt: z.date(),
+      updatedAt: z.date(),
+      bookId: z.string(),
+      rating: z.int(),
+      text: z.string(),
+    })
+    .strict(),
+)

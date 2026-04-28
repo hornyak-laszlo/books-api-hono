@@ -25,7 +25,7 @@ bun run start
 # Type-check only (no emit)
 bun run tsc
 
-# Lint + format (Biome, auto-fix)
+# Lint + format (Biome, auto-fix + organize imports)
 bun run check         # biome check --write
 
 # Run API integration tests (requires running server + local_env.json)
@@ -39,7 +39,7 @@ bunx prisma migrate dev --config prisma.config.ts
 bunx prisma migrate deploy --config prisma.config.ts
 ```
 
-> There is no unit test framework. "Tests" = Newman running the Postman collection against a live server.
+> **There is no unit test framework.** "Tests" = Newman running the Postman collection against a live server.
 > To test a single endpoint, run the server (`bun run dev`) and use the Postman collection or hit `/redoc` for the interactive API docs.
 
 ---
@@ -58,22 +58,28 @@ src/
     routes.ts           # OpenAPIHono route definitions + handlers
   genres/               # Same 3-file structure as books/
   reviews/              # Same 3-file structure as books/
-  reset-db/             # Same 3-file structure as books/
+  reset-db/             # Only routes.ts (resets DB via raw SQL from seed.sql)
 prisma/
   schema.prisma         # Prisma schema (models: Book, Review, Genre, GenresOnBooks)
+  config.ts             # Prisma config: engine classic, dotenv loaded, custom output
+  migrations/           # Does NOT exist yet — migrations are greenfield
 generated/
   prisma/               # Generated Prisma client (do NOT edit manually)
 ```
+
+> `dist/` and `generated/` are gitignored and excluded from Biome linting/formatting.
 
 ---
 
 ## Architecture Patterns
 
 ### Module structure (enforced per domain)
-Every domain (`books`, `genres`, `reviews`, `reset-db`) MUST have exactly three files:
+Every domain (`books`, `genres`, `reviews`) MUST have exactly three files:
 - `dto.ts` — Zod schemas only, no logic
 - `repository.ts` — Prisma queries only, no HTTP concerns
 - `routes.ts` — `OpenAPIHono` route definitions + inline handlers
+
+> Exception: `reset-db` only has `routes.ts` — it executes raw SQL from `seed.sql` via `prisma.$executeRawUnsafe()`.
 
 ### Route definitions
 Use `createRoute()` from `@hono/zod-openapi` for every endpoint. Always declare:
@@ -130,6 +136,7 @@ const router = new OpenAPIHono()
 - `strict: true` — no implicit `any`, strict null checks, etc.
 - Module resolution: `bundler` (Bun-native)
 - Target: `ES2023`
+- `jsx: "react-jsx"` with `jsxImportSource: "hono/jsx"` (configured in `tsconfig.json`)
 - **Never** use `as any`, `@ts-ignore`, or `@ts-expect-error` — the only exception is `errorUtils.ts` which uses `as any` for a known OpenAPI type limitation (marked with `biome-ignore`)
 - Always use `import type { ... }` for type-only imports
 
@@ -152,12 +159,15 @@ const router = new OpenAPIHono()
 - Always call `.strict()` on object schemas to reject unknown fields
 - Use `z.coerce.date()` for date inputs from JSON bodies
 - `price` is a Prisma `Decimal` — serializes to `string` in JSON; DTOs reflect this (`z.string()`)
+- This project uses **Zod 4.x** (not Zod 3) — API differences exist
 
 ### Prisma
-- Client singleton in `src/lib/prisma.ts` — import as `import prisma from '../lib/prisma'`
+- Client singleton in `src/lib/prisma.ts` using `@prisma/adapter-pg` (PrismaPg driver adapter)
 - Generated client lives in `generated/prisma/` — import from there, not from `@prisma/client`
 - Use `import type { ... }` from `generated/prisma/client` and `generated/prisma/models` for Prisma types
 - Always use `{ where: { id } }` pattern in repository functions
+- All Prisma CLI commands require `--config prisma.config.ts`
+- Config uses `engine: 'classic'` and loads `dotenv/config` explicitly for CLI operations
 
 ---
 
@@ -168,7 +178,17 @@ DATABASE_URL=<postgresql connection string>
 PORT=3000  # optional, default 3000
 ```
 
-Copy `.env.template` to `.env` to get started.
+- Copy `.env.template` to `.env` to get started.
+- Bun auto-loads `.env` at runtime. `prisma.config.ts` loads `dotenv/config` explicitly for Prisma CLI commands.
+
+---
+
+## Testing
+
+- **No unit test framework** exists in this repo.
+- Integration tests: Postman collection (`Books-API.postman_collection.json`) run via Newman against a live server.
+- `local_env.json` sets `baseURL` to `http://localhost:3000`.
+- `seed.sql` contains test data (genres, books, reviews, genre associations) and can be replayed via the `POST /reset-db` endpoint.
 
 ---
 

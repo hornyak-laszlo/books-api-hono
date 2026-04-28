@@ -1,17 +1,23 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
 
-import type { GenreCreateInput } from '../../generated/prisma/models'
-import { httpError, serverError, zodError } from '../lib/errorUtils'
+import {
+  conflictError,
+  httpError,
+  serverError,
+  zodError,
+} from '../lib/errorUtils'
 import {
   createGenreRequestDto,
   createGenreResponseDto,
   listGenresResponseDto,
 } from './dto'
 import {
+  countGenreBooks,
   createGenre,
   findAllGenres,
   findGenreById,
+  findGenreByName,
   removeGenre,
 } from './repository'
 
@@ -44,7 +50,7 @@ const postRoute = createRoute({
     },
   },
   responses: {
-    200: {
+    201: {
       description: 'Genre created',
       content: {
         'application/json': {
@@ -53,6 +59,30 @@ const postRoute = createRoute({
       },
     },
     400: zodError,
+    409: conflictError,
+    500: serverError,
+  },
+})
+
+const getRoute = createRoute({
+  method: 'get',
+  path: '/{id}',
+  request: {
+    params: z.object({
+      id: z.cuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: 'Genre details',
+      content: {
+        'application/json': {
+          schema: createGenreResponseDto,
+        },
+      },
+    },
+    400: zodError,
+    404: httpError,
     500: serverError,
   },
 })
@@ -66,16 +96,12 @@ const deleteRoute = createRoute({
     }),
   },
   responses: {
-    200: {
+    204: {
       description: 'Genre deleted',
-      content: {
-        'application/json': {
-          schema: z.object({}),
-        },
-      },
     },
     400: zodError,
     404: httpError,
+    409: conflictError,
     500: serverError,
   },
 })
@@ -88,12 +114,26 @@ const genres = new OpenAPIHono()
 
   .openapi(postRoute, async (c) => {
     const body = c.req.valid('json')
-    const data: GenreCreateInput = {
-      name: body.name,
+    const existingGenre = await findGenreByName(body.name)
+    if (existingGenre) {
+      throw new HTTPException(409, {
+        message: 'A genre with this name already exists',
+      })
     }
-    const book = await createGenre(data)
+    const genre = await createGenre(body.name)
 
-    return c.json(book)
+    return c.json(genre, 201)
+  })
+
+  .openapi(getRoute, async (c) => {
+    const id = c.req.param('id')
+    const genre = await findGenreById(id)
+    if (!genre) {
+      throw new HTTPException(404, {
+        message: 'Genre not found',
+      })
+    }
+    return c.json(genre)
   })
 
   .openapi(deleteRoute, async (c) => {
@@ -106,8 +146,15 @@ const genres = new OpenAPIHono()
       })
     }
 
+    const bookCount = await countGenreBooks(id)
+    if (bookCount > 0) {
+      throw new HTTPException(409, {
+        message: 'Cannot delete genre assigned to books',
+      })
+    }
+
     await removeGenre(id)
-    return c.json({})
+    return c.body(null, 204)
   })
 
 export default genres

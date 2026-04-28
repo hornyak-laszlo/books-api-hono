@@ -2,8 +2,8 @@ import { z } from '@hono/zod-openapi'
 
 export const createBookRequestDto = z
   .object({
-    title: z.string().min(1),
-    isbn: z.string().min(1),
+    title: z.string().min(1).max(255),
+    isbn: z.string().min(1).max(13),
     publishedAt: z.coerce.date(),
     price: z.number().min(0.01),
     inStock: z.boolean(),
@@ -31,7 +31,7 @@ export const updateBookResponseDto = z
   })
   .strict()
 
-export const createBookReponseDto = updateBookResponseDto
+export const createBookResponseDto = updateBookResponseDto
 
 export const listBooksResponseDto = z.array(
   z
@@ -95,7 +95,7 @@ export const getBookResponseDto = z
           createdAt: z.date(),
           updatedAt: z.date(),
           bookId: z.string(),
-          rating: z.number().int(),
+          rating: z.int(),
           text: z.string(),
         })
         .strict(),

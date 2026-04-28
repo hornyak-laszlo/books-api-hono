@@ -1,9 +1,34 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { HTTPException } from 'hono/http-exception'
-import type { ReviewCreateInput } from '../../generated/prisma/models'
+import { findBookById } from '../books/repository'
 import { httpError, serverError, zodError } from '../lib/errorUtils'
-import { createReviewRequestDto, createReviewResponseDto } from './dto'
-import { createReview, findReviewById, removeReview } from './repository'
+import {
+  createReviewRequestDto,
+  createReviewResponseDto,
+  listReviewsResponseDto,
+} from './dto'
+import {
+  createReview,
+  findAllReviews,
+  findReviewById,
+  removeReview,
+} from './repository'
+
+const getListRoute = createRoute({
+  method: 'get',
+  path: '/',
+  responses: {
+    200: {
+      description: 'Reviews list',
+      content: {
+        'application/json': {
+          schema: listReviewsResponseDto,
+        },
+      },
+    },
+    500: serverError,
+  },
+})
 
 const postRoute = createRoute({
   method: 'post',
@@ -18,7 +43,7 @@ const postRoute = createRoute({
     },
   },
   responses: {
-    200: {
+    201: {
       description: 'Review created',
       content: {
         'application/json': {
@@ -27,6 +52,7 @@ const postRoute = createRoute({
       },
     },
     400: zodError,
+    404: httpError,
     500: serverError,
   },
 })
@@ -40,13 +66,8 @@ const deleteRoute = createRoute({
     }),
   },
   responses: {
-    200: {
+    204: {
       description: 'Review deleted',
-      content: {
-        'application/json': {
-          schema: z.object({}),
-        },
-      },
     },
     400: zodError,
     404: httpError,
@@ -55,16 +76,26 @@ const deleteRoute = createRoute({
 })
 
 const reviews = new OpenAPIHono()
+  .openapi(getListRoute, async (c) => {
+    const reviews = await findAllReviews()
+    return c.json(reviews)
+  })
+
   .openapi(postRoute, async (c) => {
     const body = c.req.valid('json')
-    const data: ReviewCreateInput = {
-      book: { connect: { id: body.bookId } },
+    const book = await findBookById(body.bookId)
+    if (!book) {
+      throw new HTTPException(404, {
+        message: 'Book not found',
+      })
+    }
+    const review = await createReview({
+      bookId: body.bookId,
       rating: body.rating,
       text: body.text,
-    }
-    const review = await createReview(data)
+    })
 
-    return c.json(review)
+    return c.json(review, 201)
   })
 
   .openapi(deleteRoute, async (c) => {
@@ -76,7 +107,7 @@ const reviews = new OpenAPIHono()
       })
     }
     await removeReview(id)
-    return c.json({})
+    return c.body(null, 204)
   })
 
 export default reviews

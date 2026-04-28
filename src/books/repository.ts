@@ -4,14 +4,31 @@ import type {
   GenresOnBooks,
   Review,
 } from '../../generated/prisma/client'
-import type {
-  BookCreateInput,
-  BookUpdateInput,
-} from '../../generated/prisma/models'
+import type { BookUpdateInput } from '../../generated/prisma/models'
 import prisma from '../lib/prisma'
 
-export const createBook = async (data: BookCreateInput): Promise<Book> => {
-  const book = await prisma.book.create({ data })
+export const createBook = async (data: {
+  title: string
+  isbn: string
+  publishedAt: Date
+  price: number
+  inStock: boolean
+  genreIds: string[]
+}): Promise<Book> => {
+  const book = await prisma.book.create({
+    data: {
+      title: data.title,
+      isbn: data.isbn,
+      publishedAt: data.publishedAt,
+      price: data.price,
+      inStock: data.inStock,
+      genres: {
+        create: data.genreIds.map((genreId) => ({
+          genre: { connect: { id: genreId } },
+        })),
+      },
+    },
+  })
   return book
 }
 
@@ -29,6 +46,13 @@ export const findAllBooks = async (): Promise<
   })
 
   return books
+}
+
+export const findBookByIsbn = async (isbn: string): Promise<Book | null> => {
+  const book = await prisma.book.findUnique({
+    where: { isbn },
+  })
+  return book
 }
 
 export const findBookById = async (
